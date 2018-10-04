@@ -1,7 +1,7 @@
 # openwrt-dw22d
 add support for dw22d (image builder)
 
-# 利用ImageBuilder将机型支持代码与OpenWrt官方二进制程序合并生成固件
+## 利用ImageBuilder将机型支持代码与OpenWrt官方二进制程序合并生成固件
 git clone https://github.com/zhouzhiwen2000/openwrt-dw22d.git
 
 cd openwrt-dw22d/ImageBuilder
