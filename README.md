@@ -5,15 +5,15 @@ add support for dw22d (image builder)
 git clone https://github.com/zhouzhiwen2000/openwrt-dw22d.git
 
 cd openwrt-dw22d/ImageBuilder
-## 下载ImageBuilder和SDK
+### 下载ImageBuilder和SDK
 ImageBuilder:https://archive.openwrt.org/barrier_breaker/14.07/ramips/mt7620a/OpenWrt-ImageBuilder-ramips_mt7620a-for-linux-x86_64.tar.bz2
 
 SDK:https://archive.openwrt.org/barrier_breaker/14.07/ramips/mt7620a/OpenWrt-SDK-ramips-for-linux-x86_64-gcc-4.8-linaro_uClibc-0.9.33.2.tar.bz2
-## 解压ImageBuilder和SDK
+### 解压ImageBuilder和SDK
 tar jxvf OpenWrt-ImageBuilder-ramips_mt7620a-for-linux-x86_64.tar.bz2
 
 tar jxvf OpenWrt-SDK-ramips-for-linux-x86_64-gcc-4.8-linaro_uClibc-0.9.33.2.tar.bz2
-## 生成固件：
+### 生成固件：
 make DW22D FEEDS=1 RALINK=1
 
 FEEDS=1 表示包含项目network-feeds 的功能在内
