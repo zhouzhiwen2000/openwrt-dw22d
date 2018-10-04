@@ -1,0 +1,836 @@
+diff -uprN a/target/linux/ramips/base-files/etc/board.d/01_leds b/target/linux/ramips/base-files/etc/board.d/01_leds
+--- a/target/linux/ramips/base-files/etc/board.d/01_leds	2015-07-25 00:23:27.000000000 +0000
++++ b/target/linux/ramips/base-files/etc/board.d/01_leds	2018-09-04 06:49:14.768789297 +0000
+@@ -243,6 +243,35 @@ case $board in
+ 		set_usb_led "wr8305rt:usb"
+ 		set_wifi_led "wr8305rt:wifi"
+ 		;;
++	hc5661)
++		ucidef_set_led_default "system" "system" "hc5661:blue:system" "1"
++		ucidef_set_led_netdev "internet" "internet" "hc5661:blue:internet" "eth0.2"
++		set_wifi_led "hc5661:blue:wlan2g"
++		;;	
++	hc5761)
++		ucidef_set_led_default "system" "system" "hc5761:blue:system" "1"
++		ucidef_set_led_netdev "internet" "internet" "hc5761:blue:internet" "eth0.2"
++		set_wifi_led "hc5761:blue:wlan2g"
++		ucidef_set_led_netdev "wifi5g" "wifi5g" "hc5761:blue:wlan5g" "rai0"
++		;;
++	hc5861)
++		ucidef_set_led_default "system" "system" "hc5861:blue:system" "1"
++		ucidef_set_led_netdev "internet" "internet" "hc5861:blue:internet" "eth0.2"
++		set_wifi_led "hc5861:blue:wlan2g"
++		ucidef_set_led_netdev "wifi5g" "wifi5g" "hc5861:blue:wlan5g" "rai0"
++		ucidef_set_led_default "turbo" "turbo" "hc5861:blue:turbo" "0"
++		;;
++	hc5661a)
++		ucidef_set_led_default "system" "system" "hc5661a:blue:system" "1"
++		ucidef_set_led_netdev "internet" "internet" "hc5661a:blue:internet" "eth0.2"
++		set_wifi_led "hc5661a:blue:wlan2g"
++		;;
++	dw22d)
++		ucidef_set_led_default "system" "system" "dw22d:green:system" "1"
++		ucidef_set_led_netdev "internet" "internet" "dw22d:red:internet" "eth0.2"
++		set_wifi_led "dw22d:green:wlan2g"
++		ucidef_set_led_netdev "wifi5g" "wifi5g" "dw22d:red:system" "rai0"
++		;;
+ 	wt1520)
+ 		set_wifi_led "rt2800pci-phy0::radio"
+ 		;;
+diff -uprN a/target/linux/ramips/base-files/etc/board.d/02_network b/target/linux/ramips/base-files/etc/board.d/02_network
+--- a/target/linux/ramips/base-files/etc/board.d/02_network	2015-07-25 00:23:27.000000000 +0000
++++ b/target/linux/ramips/base-files/etc/board.d/02_network	2018-09-04 05:48:35.188184973 +0000
+@@ -233,6 +233,9 @@ ramips_setup_interfaces()
+ 		ucidef_add_switch_vlan "switch0" "2" "4 6t"
+ 		;;
+ 
++	hc5*61 | \
++	hc5661a | \
++	dw22d | \
+ 	y1s)
+ 		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
+ 		ucidef_add_switch "switch0" "1" "1"
+@@ -283,6 +286,14 @@ ramips_setup_macs()
+ 		wan_mac=$(mtd_get_mac_binary devdata 7)
+ 		;;
+ 
++	hc5*61 |\
++	dw22d |\
++	hc5661a)
++		lan_mac=`mtd_get_mac_ascii bdinfo "Vfac_mac "`
++		[ -n "$lan_mac" ] || lan_mac=$(cat /sys/class/net/eth0/address)
++		wan_mac=$(macaddr_add "$lan_mac" 1)
++		;;
++
+ 	w306r-v20)
+ 		lan_mac=$(cat /sys/class/net/eth0/address)
+ 		wan_mac=$(macaddr_add "$lan_mac" 5)
+diff -uprN a/target/linux/ramips/base-files/etc/diag.sh b/target/linux/ramips/base-files/etc/diag.sh
+--- a/target/linux/ramips/base-files/etc/diag.sh	2015-07-25 00:23:27.000000000 +0000
++++ b/target/linux/ramips/base-files/etc/diag.sh	2018-09-04 05:48:35.188184973 +0000
+@@ -69,6 +69,21 @@ get_status_led() {
+ 	fonera20n)
+ 		status_led="fonera20n:green:power"
+ 		;;
++	hc5661)
++		status_led="hc5661:blue:system"
++		;;
++	hc5761)
++		status_led="hc5761:blue:system"
++		;;
++	hc5861)
++		status_led="hc5861:blue:system"
++		;;
++	hc5661a)
++		status_led="hc5661a:blue:system"
++		;;
++	dw22d)
++		status_led="dw22d:green:system"
++		;;
+ 	ip2202)
+ 		status_led="ip2202:green:run"
+ 		;;
+diff -uprN a/target/linux/ramips/base-files/etc/uci-defaults/disable-pdnsd b/target/linux/ramips/base-files/etc/uci-defaults/disable-pdnsd
+--- a/target/linux/ramips/base-files/etc/uci-defaults/disable-pdnsd	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/base-files/etc/uci-defaults/disable-pdnsd	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,2 @@
++#!/bin/sh
++[ -x /etc/init.d/pdnsd ] && /etc/init.d/pdnsd disable
+diff -uprN a/target/linux/ramips/base-files/lib/ramips.sh b/target/linux/ramips/base-files/lib/ramips.sh
+--- a/target/linux/ramips/base-files/lib/ramips.sh	2015-07-25 00:23:27.000000000 +0000
++++ b/target/linux/ramips/base-files/lib/ramips.sh	2018-09-04 05:48:35.188184973 +0000
+@@ -172,6 +172,21 @@ ramips_board_detect() {
+ 	*"Hauppauge Broadway")
+ 		name="broadway"
+ 		;;
++	*"HC5661")
++		name="hc5661"
++		;;
++	*"HC5761")
++		name="hc5761"
++		;;
++	*"HC5861")
++		name="hc5861"
++		;;
++	*"HC5661A")
++		name="hc5661a"
++		;;
++	*"DW22D")
++		name="dw22d"
++		;;
+ 	*"Huawei D105")
+ 		name="d105"
+ 		;;
+diff -uprN a/target/linux/ramips/base-files/lib/upgrade/platform.sh b/target/linux/ramips/base-files/lib/upgrade/platform.sh
+--- a/target/linux/ramips/base-files/lib/upgrade/platform.sh	2015-07-25 00:23:27.000000000 +0000
++++ b/target/linux/ramips/base-files/lib/upgrade/platform.sh	2018-09-04 05:48:35.188184973 +0000
+@@ -56,6 +56,9 @@ platform_check_image() {
+ 	firewrt |\
+ 	pbr-m1 |\
+ 	hg255d | \
++	hc5*61 | \
++	hc5661a | \
++	dw22d | \
+ 	hlk-rm04 | \
+ 	ht-tm02 | \
+ 	hw550-3g | \
+diff -uprN a/target/linux/ramips/dts/DW22D.dts b/target/linux/ramips/dts/DW22D.dts
+--- a/target/linux/ramips/dts/DW22D.dts	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/dts/DW22D.dts	2018-09-04 06:47:51.157653405 +0000
+@@ -0,0 +1,32 @@
++/dts-v1/;
++
++/include/ "DW22D.dtsi"
++
++/ {
++	compatible = "DW22D", "ralink,mt7620a-soc";
++	model = "DOMY DW22D";
++
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		system {
++			label = "dw22d:green:system";
++			gpios = <&gpio0 9 1>;
++		};
++
++		internet {
++			label = "dw22d:red:internet";
++			gpios = <&gpio0 11 1>;
++		};
++
++		wlan2g {
++			label = "dw22d:green:wlan2g";
++			gpios = <&gpio3 0 1>;
++		};
++
++		wlan5g {
++			label = "dw22d:red:system";
++			gpios = <&gpio0 7 1>;
++		};
++	};
++};
+diff -uprN a/target/linux/ramips/dts/DW22D.dtsi b/target/linux/ramips/dts/DW22D.dtsi
+--- a/target/linux/ramips/dts/DW22D.dtsi	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/dts/DW22D.dtsi	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,141 @@
++/include/ "mt7620a.dtsi"
++
++/ {
++	chosen {
++		bootargs = "console=ttyS0,115200";
++	};
++
++	palmbus@10000000 {
++		sysc@0 {
++			ralink,gpiomux = "i2c", "jtag";
++			ralink,uartmux = "gpio";
++			ralink,wdtmux = <1>;
++		};
++
++		gpio0: gpio@600 {
++			status = "okay";
++		};
++
++		gpio2: gpio@660 {
++			status = "okay";
++		};
++
++		gpio3: gpio@688 {
++			status = "okay";
++		};
++
++		spi@b00 {
++			status = "okay";
++
++			m25p80@0 {
++				#address-cells = <1>;
++				#size-cells = <1>;
++				compatible = "w25q128";
++				reg = <0 0>;
++				linux,modalias = "m25p80", "w25q128";
++				spi-max-frequency = <10000000>;
++
++				partition@0 {
++					label = "u-boot";
++					reg = <0x0 0x30000>;
++				};
++
++				partition@30000 {
++					label = "u-boot-env";
++					reg = <0x30000 0x10000>;
++					read-only;
++				};
++
++				factory: partition@40000 {
++					label = "factory";
++					reg = <0x40000 0x10000>;
++				};
++
++				partition@50000 {
++					label = "firmware";
++					reg = <0x50000 0xf80000>;
++				};
++
++				partition@fd0000 {
++					label = "hwf_config";
++					reg = <0xfd0000 0x10000>;
++				};
++
++				bdinfo: partition@fe0000 {
++					label = "bdinfo";
++					reg = <0xfe0000 0x10000>;
++				};
++
++				partition@ff0000 {
++					label = "backup";
++					reg = <0xff0000 0x10000>;
++				};
++			};
++		};
++	};
++
++	ehci@101c0000 {
++		status = "okay";
++	};
++
++	ohci@101c1000 {
++		status = "okay";
++	};
++
++	ethernet@10100000 {
++		pinctrl-names = "default";
++		pinctrl-0 = <&ephy_pins>;
++		mtd-mac-address = <&factory 0x4>;
++		ralink,port-map = "wllll";
++	};
++
++	sdhci@10130000 {
++		status = "okay";
++	};
++
++	wmac@10180000 {
++		ralink,mtd-eeprom = <&factory 0>;
++	};
++
++	pcie@10140000 {
++		status = "okay";
++	};
++
++	pinctrl {
++		state_default: pinctrl0 {
++			gpio {
++				ralink,group = "uartf", "wled", "nd_sd";
++				ralink,function = "gpio";
++			};
++
++			pa {
++				ralink,group = "pa";
++				ralink,function = "pa";
++			};
++		};
++	};
++
++	gpio-keys-polled {
++		compatible = "gpio-keys-polled";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		poll-interval = <20>;
++
++		reset {
++			label = "reset";
++			gpios = <&gpio0 12 1>;
++			linux,code = <0x198>;
++		};
++	};
++
++	gpio_export {
++		compatible = "gpio-export";
++		#size-cells = <0>;
++
++		usbpower {
++			gpio-export,name = "usbpower";
++			gpio-export,output = <1>;
++			gpios = <&gpio0 13 0>;
++		};
++	};
++};
+diff -uprN a/target/linux/ramips/dts/HC5661.dts b/target/linux/ramips/dts/HC5661.dts
+--- a/target/linux/ramips/dts/HC5661.dts	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/dts/HC5661.dts	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,32 @@
++/dts-v1/;
++
++/include/ "HC5XXX.dtsi"
++
++/ {
++	compatible = "HC5661", "ralink,mt7620a-soc";
++	model = "HiWiFi HC5661";
++
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		system {
++			label = "hc5661:blue:system";
++			gpios = <&gpio0 9 1>;
++		};
++
++		internet {
++			label = "hc5661:blue:internet";
++			gpios = <&gpio0 11 1>;
++		};
++
++		wlan2g {
++			label = "hc5661:blue:wlan2g";
++			gpios = <&gpio3 0 1>;
++		};
++
++		wlan5g {
++			label = "hc5661:blue:wlan5g";
++			gpios = <&gpio0 7 1>;
++		};
++	};
++};
+diff -uprN a/target/linux/ramips/dts/HC5661A.dts b/target/linux/ramips/dts/HC5661A.dts
+--- a/target/linux/ramips/dts/HC5661A.dts	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/dts/HC5661A.dts	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,78 @@
++/dts-v1/;
++
++/include/ "mt7628an.dtsi"
++
++/ {
++	compatible = "HC5661A", "mediatek,mt7628an-soc";
++	model = "HiWiFi HC5661A";
++
++	chosen {
++		bootargs = "console=ttyS0,115200";
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x0 0x8000000>;
++	};
++
++	pinctrl {
++		state_default: pinctrl0 {
++			gpio {
++				ralink,group = "i2c", "jtag";
++				ralink,function = "gpio";
++			};
++		};
++	};
++
++	palmbus@10000000 {
++		spi@b00 {
++			status = "okay";
++
++			m25p80@0 {
++				#address-cells = <1>;
++				#size-cells = <1>;
++				compatible = "w25q128";
++				reg = <0 0>;
++				linux,modalias = "m25p80", "w25q128";
++				spi-max-frequency = <10000000>;
++				m25p,chunked-io = <32>;
++
++				partition@0 {
++					label = "u-boot";
++					reg = <0x0 0x30000>;
++				};
++
++				partition@30000 {
++					label = "u-boot-env";
++					reg = <0x30000 0x10000>;
++					read-only;
++				};
++
++				factory: partition@40000 {
++					label = "factory";
++					reg = <0x40000 0x10000>;
++				};
++
++				partition@50000 {
++					label = "firmware";
++					reg = <0x50000 0xf80000>;
++				};
++
++				partition@fd0000 {
++					label = "hwf_config";
++					reg = <0xfd0000 0x10000>;
++				};
++
++				bdinfo: partition@fe0000 {
++					label = "bdinfo";
++					reg = <0xfe0000 0x10000>;
++				};
++
++				partition@ff0000 {
++					label = "backup";
++					reg = <0xff0000 0x10000>;
++				};
++			};
++		};
++	};
++};
+diff -uprN a/target/linux/ramips/dts/HC5761.dts b/target/linux/ramips/dts/HC5761.dts
+--- a/target/linux/ramips/dts/HC5761.dts	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/dts/HC5761.dts	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,32 @@
++/dts-v1/;
++
++/include/ "HC5XXX.dtsi"
++
++/ {
++	compatible = "HC5761", "ralink,mt7620a-soc";
++	model = "HiWiFi HC5761";
++
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		system {
++			label = "hc5761:blue:system";
++			gpios = <&gpio0 9 1>;
++		};
++
++		internet {
++			label = "hc5761:blue:internet";
++			gpios = <&gpio0 11 1>;
++		};
++
++		wlan2g {
++			label = "hc5761:blue:wlan2g";
++			gpios = <&gpio3 0 1>;
++		};
++
++		wlan5g {
++			label = "hc5761:blue:wlan5g";
++			gpios = <&gpio0 7 1>;
++		};
++	};
++};
+diff -uprN a/target/linux/ramips/dts/HC5861.dts b/target/linux/ramips/dts/HC5861.dts
+--- a/target/linux/ramips/dts/HC5861.dts	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/dts/HC5861.dts	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,92 @@
++/dts-v1/;
++
++/include/ "HC5XXX.dtsi"
++
++/ {
++	compatible = "HC5861", "ralink,mt7620a-soc";
++	model = "HiWiFi HC5861";
++
++	ethernet@10100000 {
++		status = "okay";
++		mtd-mac-address = <&factory 0x4>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&rgmii1_pins &rgmii2_pins &mdio_pins>;
++		ralink,port-map = "wllll";
++
++		port@4 {
++			status = "okay";
++			phy-handle = <&phy4>;
++			phy-mode = "rgmii";
++		};
++
++		port@5 {
++			status = "okay";
++			phy-handle = <&phy5>;
++			phy-mode = "rgmii";
++		};
++
++		mdio-bus {
++			status = "okay";
++
++			phy4: ethernet-phy@4 {
++				reg = <4>;
++				phy-mode = "rgmii";
++			};
++
++			phy5: ethernet-phy@5 {
++				reg = <5>;
++				phy-mode = "rgmii";
++			};
++		};
++	};
++
++	gsw@10110000 {
++		ralink,port4 = "gmac";
++	};
++
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		system {
++			label = "hc5861:blue:system";
++			gpios = <&gpio0 9 1>;
++		};
++
++		wlan2g {
++			label = "hc5861:blue:wlan2g";
++			gpios = <&gpio0 11 1>;
++		};
++
++		internet {
++			label = "hc5861:blue:internet";
++			gpios = <&gpio3 0 1>;
++		};
++
++		wlan5g {
++			label = "hc5861:blue:wlan5g";
++			gpios = <&gpio0 7 1>;
++		};
++
++		turbo {
++			label = "hc5861:blue:turbo";
++			gpios = <&gpio0 10 1>;
++		};
++	};
++
++	gpio_export {
++		compatible = "gpio-export";
++		#size-cells = <0>;
++
++		usbpower {
++			gpio-export,name = "usbpower";
++			gpio-export,output = <0>;
++			gpios = <&gpio0 13 0>;
++		};
++
++		sdpower {
++			gpio-export,name = "sdpower";
++			gpio-export,output = <0>;
++			gpios = <&gpio0 8 0>;
++		};
++	};
++};
+diff -uprN a/target/linux/ramips/dts/HC5XXX.dtsi b/target/linux/ramips/dts/HC5XXX.dtsi
+--- a/target/linux/ramips/dts/HC5XXX.dtsi	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/dts/HC5XXX.dtsi	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,141 @@
++/include/ "mt7620a.dtsi"
++
++/ {
++	chosen {
++		bootargs = "console=ttyS0,115200";
++	};
++
++	palmbus@10000000 {
++		sysc@0 {
++			ralink,gpiomux = "i2c", "jtag";
++			ralink,uartmux = "gpio";
++			ralink,wdtmux = <1>;
++		};
++
++		gpio0: gpio@600 {
++			status = "okay";
++		};
++
++		gpio2: gpio@660 {
++			status = "okay";
++		};
++
++		gpio3: gpio@688 {
++			status = "okay";
++		};
++
++		spi@b00 {
++			status = "okay";
++
++			m25p80@0 {
++				#address-cells = <1>;
++				#size-cells = <1>;
++				compatible = "w25q128";
++				reg = <0 0>;
++				linux,modalias = "m25p80", "w25q128";
++				spi-max-frequency = <10000000>;
++
++				partition@0 {
++					label = "u-boot";
++					reg = <0x0 0x30000>;
++				};
++
++				partition@30000 {
++					label = "u-boot-env";
++					reg = <0x30000 0x10000>;
++					read-only;
++				};
++
++				factory: partition@40000 {
++					label = "factory";
++					reg = <0x40000 0x10000>;
++				};
++
++				partition@50000 {
++					label = "firmware";
++					reg = <0x50000 0xf80000>;
++				};
++
++				partition@fd0000 {
++					label = "hwf_config";
++					reg = <0xfd0000 0x10000>;
++				};
++
++				bdinfo: partition@fe0000 {
++					label = "bdinfo";
++					reg = <0xfe0000 0x10000>;
++				};
++
++				partition@ff0000 {
++					label = "backup";
++					reg = <0xff0000 0x10000>;
++				};
++			};
++		};
++	};
++
++	ehci@101c0000 {
++		status = "okay";
++	};
++
++	ohci@101c1000 {
++		status = "okay";
++	};
++
++	ethernet@10100000 {
++		pinctrl-names = "default";
++		pinctrl-0 = <&ephy_pins>;
++		mtd-mac-address = <&factory 0x4>;
++		ralink,port-map = "wllll";
++	};
++
++	sdhci@10130000 {
++		status = "okay";
++	};
++
++	wmac@10180000 {
++		ralink,mtd-eeprom = <&factory 0>;
++	};
++
++	pcie@10140000 {
++		status = "okay";
++	};
++
++	pinctrl {
++		state_default: pinctrl0 {
++			gpio {
++				ralink,group = "uartf", "wled", "nd_sd";
++				ralink,function = "gpio";
++			};
++
++			pa {
++				ralink,group = "pa";
++				ralink,function = "pa";
++			};
++		};
++	};
++
++	gpio-keys-polled {
++		compatible = "gpio-keys-polled";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		poll-interval = <20>;
++
++		reset {
++			label = "reset";
++			gpios = <&gpio0 12 1>;
++			linux,code = <0x198>;
++		};
++	};
++
++	gpio_export {
++		compatible = "gpio-export";
++		#size-cells = <0>;
++
++		usbpower {
++			gpio-export,name = "usbpower";
++			gpio-export,output = <1>;
++			gpios = <&gpio0 13 0>;
++		};
++	};
++};
+diff -uprN a/target/linux/ramips/image/Makefile b/target/linux/ramips/image/Makefile
+--- a/target/linux/ramips/image/Makefile	2015-07-25 00:23:27.000000000 +0000
++++ b/target/linux/ramips/image/Makefile	2018-09-04 05:48:35.188184973 +0000
+@@ -866,6 +866,11 @@ Image/Build/Profile/DIR-810L=$(call Buil
+ na930_mtd_size=20971520
+ Image/Build/Profile/NA930=$(call BuildFirmware/CustomFlash/$(1),$(1),na930,NA930,$(na930_mtd_size))
+ Image/Build/Profile/MZK-750DHP=$(call BuildFirmware/Default8M/$(1),$(1),mzk-750dhp,MZK-750DHP)
++Image/Build/Profile/HC5661=$(call BuildFirmware/Default16M/$(1),$(1),hc5661,HC5661)
++Image/Build/Profile/HC5761=$(call BuildFirmware/Default16M/$(1),$(1),hc5761,HC5761)
++Image/Build/Profile/HC5861=$(call BuildFirmware/Default16M/$(1),$(1),hc5861,HC5861)
++Image/Build/Profile/HC5661A=$(call BuildFirmware/Default16M/$(1),$(1),hc5661a,HC5661A)
++Image/Build/Profile/DW22D=$(call BuildFirmware/Default16M/$(1),$(1),dw22d,DW22D)
+ Image/Build/Profile/Y1=$(call BuildFirmware/Default16M/$(1),$(1),Lenovo-y1,Y1)
+ Image/Build/Profile/Y1S=$(call BuildFirmware/Default16M/$(1),$(1),Lenovo-y1s,Y1S)
+ Image/Build/Profile/MLW221=$(call BuildFirmware/Default16M/$(1),$(1),mlw221,MLW221)
+@@ -899,6 +904,11 @@ define Image/Build/Profile/Default
+ 	$(call Image/Build/Profile/WHR1166D,$(1))
+ 	$(call Image/Build/Profile/MZK-750DHP,$(1))
+ 	$(call Image/Build/Profile/NA930,$(1))
++	$(call Image/Build/Profile/HC5661,$(1))
++	$(call Image/Build/Profile/HC5761,$(1))
++	$(call Image/Build/Profile/HC5861,$(1))
++	$(call Image/Build/Profile/HC5661A,$(1))
++        $(call Image/Build/Profile/DW22D,$(1))
+ 	$(call Image/Build/Profile/Y1,$(1))
+ 	$(call Image/Build/Profile/Y1S,$(1))
+ 	$(call Image/Build/Profile/MLW221,$(1))
+diff -uprN a/target/linux/ramips/mt7620/profiles/domy.mk b/target/linux/ramips/mt7620/profiles/domy.mk
+--- a/target/linux/ramips/mt7620/profiles/domy.mk	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/mt7620/profiles/domy.mk	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,19 @@
++#
++# Copyright (C) 2015 OpenWrt.org
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++define Profile/DW22D
++	NAME:=DOMY DW22D
++	PACKAGES:=\
++		kmod-usb-core kmod-usb-dwc2 kmod-usb2 \
++		kmod-mmc-spi kmod-sdhci kmod-sdhci-mt7620 \
++		kmod-ledtrig-usbdev
++endef
++
++define Profile/DW22D/Description
++ Support DOMY DW22D model(J2)
++endef
++$(eval $(call Profile,DW22D))
++
+diff -uprN a/target/linux/ramips/mt7620/profiles/hiwifi.mk b/target/linux/ramips/mt7620/profiles/hiwifi.mk
+--- a/target/linux/ramips/mt7620/profiles/hiwifi.mk	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/mt7620/profiles/hiwifi.mk	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,47 @@
++#
++# Copyright (C) 2015 OpenWrt.org
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++
++define Profile/HC5661
++	NAME:=HiWiFi HC5661
++	PACKAGES:=\
++		kmod-usb-core kmod-usb-dwc2 kmod-usb2 \
++		kmod-mmc-spi kmod-sdhci kmod-sdhci-mt7620 \
++   		kmod-ledtrig-usbdev
++endef
++
++define Profile/HC5661/Description
++	Support HiWiFi HC5661 model(J1S)
++endef
++$(eval $(call Profile,HC5661))
++
++
++define Profile/HC5761
++	NAME:=HiWiFi HC5761
++	PACKAGES:=\
++		kmod-usb-core kmod-usb-dwc2 kmod-usb2 \
++		kmod-mmc-spi kmod-sdhci kmod-sdhci-mt7620 \
++		kmod-ledtrig-usbdev
++endef
++
++define Profile/HC5761/Description
++ Support HiWiFi HC5761 model(J2)
++endef
++$(eval $(call Profile,HC5761))
++
++	
++define Profile/HC5861
++	NAME:=HiWiFi HC5861
++	PACKAGES:=\
++		kmod-usb-core kmod-usb-dwc2 kmod-usb2 \
++		kmod-mmc-spi kmod-sdhci kmod-sdhci-mt7620 \
++		kmod-ledtrig-usbdev
++endef
++
++define Profile/HC5861/Description
++	Support HiWiFi HC5861 model(J3)
++endef
++$(eval $(call Profile,HC5861))
+diff -uprN a/target/linux/ramips/mt7628/profiles/hiwifi.mk b/target/linux/ramips/mt7628/profiles/hiwifi.mk
+--- a/target/linux/ramips/mt7628/profiles/hiwifi.mk	1970-01-01 00:00:00.000000000 +0000
++++ b/target/linux/ramips/mt7628/profiles/hiwifi.mk	2018-09-04 05:48:35.188184973 +0000
+@@ -0,0 +1,19 @@
++#
++# Copyright (C) 2015 OpenWrt.org
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++
++define Profile/HC5661A
++	NAME:=HiWiFi HC5661A
++	PACKAGES:=\
++		kmod-usb-core kmod-usb-dwc2 kmod-usb2 \
++		kmod-mmc-spi kmod-sdhci kmod-sdhci-mt7620 \
++   		kmod-ledtrig-usbdev
++endef
++
++define Profile/HC5661A/Description
++	Support HiWiFi HC5661A model(J1S new)
++endef
++$(eval $(call Profile,HC5661A))
