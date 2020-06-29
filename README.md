@@ -4,7 +4,7 @@ add support for dw22d (image builder)
 # 利用ImageBuilder将机型支持代码与OpenWrt官方二进制程序合并生成固件
 git clone https://github.com/zhouzhiwen2000/openwrt-dw22d.git
 
-cd openwrt-dw22d/ImageBuilder
+
 ### 下载ImageBuilder和SDK
 ImageBuilder:https://archive.openwrt.org/barrier_breaker/14.07/ramips/mt7620a/OpenWrt-ImageBuilder-ramips_mt7620a-for-linux-x86_64.tar.bz2
 
